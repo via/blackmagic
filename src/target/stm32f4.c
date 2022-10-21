@@ -134,7 +134,8 @@ enum IDS_STM32F247 {
 	ID_STM32F76X  = 0x451,
 	ID_STM32F72X  = 0x452,
 	ID_STM32F410  = 0x458,
-	ID_STM32F413  = 0x463
+	ID_STM32F413  = 0x463,
+	ID_GD32F470  = 0xa2e
 };
 
 static void stm32f4_add_flash(
@@ -191,6 +192,8 @@ static char *stm32f4_get_chip_name(uint32_t device_id)
 		return "STM32F76x";
 	case ID_STM32F72X: /* F72/3xC/E RM0431 */
 		return "STM32F72x";
+	case ID_GD32F470: /* GigaDevices Clones */
+		return "GD32F470";
 	default:
 		return NULL;
 	}
@@ -242,6 +245,39 @@ bool stm32f4_probe(target *t)
 	return false;
 }
 
+bool gd32f4_probe(target *t)
+{
+	uint16_t mcu_idcode = target_mem_read32(t, DBGMCU_IDCODE) & 0xfffU;
+
+	switch (mcu_idcode) {
+	case ID_GD32F470:  /* 3 MB flash, 512kB ram */
+		t->attach = stm32f4_attach;
+		t->detach = stm32f4_detach;
+		t->mass_erase = stm32f4_mass_erase;
+		t->driver = stm32f4_get_chip_name(t->part_id);
+		t->part_id = mcu_idcode;
+		target_add_commands(t, stm32f4_cmd_list, t->driver);
+		return true;
+  }
+  return false;
+}
+
+static bool gd32f4_attach(target *t)
+{
+	if (!cortexm_attach(t))
+		return false;
+
+	switch(t->part_id) {
+	case ID_GD32F470:
+		has_ccmram = true;
+		max_flashsize = 3072;
+		break;
+  }
+
+  target_add_ram(t, 0x10000000, 0x10000); /* 64 k CCM Ram*/
+  target_add_ram(t, 0x20000000, 0x50000);     /* 320 k RAM */
+}
+
 static bool stm32f4_attach(target *t)
 {
 	bool dual_bank = false;
@@ -257,6 +293,10 @@ static bool stm32f4_attach(target *t)
 	case ID_STM32F40X:
 		has_ccmram = true;
 		max_flashsize = 1024;
+		break;
+	case ID_GD32F470:
+		has_ccmram = true;
+		max_flashsize = 3072;
 		break;
 	case ID_STM32F42X: /* 427/437 */
 		has_ccmram = true;
