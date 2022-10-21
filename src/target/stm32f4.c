@@ -134,7 +134,8 @@ enum IDS_STM32F247 {
 	ID_STM32F76X  = 0x451,
 	ID_STM32F72X  = 0x452,
 	ID_STM32F410  = 0x458,
-	ID_STM32F413  = 0x463
+	ID_STM32F413  = 0x463,
+	ID_GD32F470  = 0xa2e
 };
 
 static void stm32f4_add_flash(
@@ -191,6 +192,8 @@ static char *stm32f4_get_chip_name(uint32_t device_id)
 		return "STM32F76x";
 	case ID_STM32F72X: /* F72/3xC/E RM0431 */
 		return "STM32F72x";
+	case ID_GD32F470: /* GigaDevices Clones */
+		return "GD32F470";
 	default:
 		return NULL;
 	}
@@ -242,6 +245,47 @@ bool stm32f4_probe(target *t)
 	return false;
 }
 
+static bool gd32f4_attach(target *t)
+{
+	if (!cortexm_attach(t))
+		return false;
+
+	target_mem_map_free(t);
+  target_add_ram(t, 0x10000000, 0x10000); /* 64 k CCM Ram*/
+  target_add_ram(t, 0x20000000, 0x50000);     /* 320 k RAM */
+
+  /* TODO implement DBS mode */
+  const int split = 12;
+  /* Bank 1*/
+  stm32f4_add_flash(t, 0x8000000, 0x10000,  0x4000,  0, split); /* 4 16K */
+  stm32f4_add_flash(t, 0x8010000, 0x10000,  0x10000,  4, split); /* 1 64K */
+  stm32f4_add_flash(t, 0x8020000, 0xe0000,  0x20000,  5, split); /* 7 128K */
+
+  /* Bank 2 */
+  stm32f4_add_flash(t, 0x8100000, 0x10000,  0x4000,  16, split); /* 4 16K */
+  stm32f4_add_flash(t, 0x8110000, 0x10000,  0x10000,  20, split); /* 1 64K */
+  stm32f4_add_flash(t, 0x8120000, 0xe0000,  0x20000,  21, split); /* 7 128K */
+
+  /* Third MB composed of 4 256 KB sectors, and uses sector values 12-15 */
+  stm32f4_add_flash(t, 0x8200000, 0x100000,  0x40000,  12, split);
+  return true;
+}
+
+
+bool gd32f4_probe(target *t)
+{
+	switch (t->part_id) {
+	case ID_GD32F470:  /* 3 MB flash, 512kB ram */
+		t->attach = gd32f4_attach;
+		t->detach = cortexm_detach;
+		t->mass_erase = stm32f4_mass_erase;
+		t->driver = stm32f4_get_chip_name(t->part_id);
+		target_add_commands(t, stm32f4_cmd_list, t->driver);
+		return true;
+  }
+  return false;
+}
+
 static bool stm32f4_attach(target *t)
 {
 	bool dual_bank = false;
@@ -257,6 +301,10 @@ static bool stm32f4_attach(target *t)
 	case ID_STM32F40X:
 		has_ccmram = true;
 		max_flashsize = 1024;
+		break;
+	case ID_GD32F470:
+		has_ccmram = true;
+		max_flashsize = 3072;
 		break;
 	case ID_STM32F42X: /* 427/437 */
 		has_ccmram = true;

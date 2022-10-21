@@ -642,7 +642,8 @@ bool cortexm_probe(ADIv5_AP_t *ap)
 		break;
 	case JEP106_MANUFACTURER_GIGADEVICE:
 		PROBE(gd32f1_probe);
-		break;
+		PROBE(gd32f4_probe);
+    break;
 	case JEP106_MANUFACTURER_STM:
 		PROBE(stm32f1_probe);
 		PROBE(stm32f4_probe);
