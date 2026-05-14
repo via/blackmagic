@@ -170,6 +170,8 @@ bool kinetis_probe(target_s *const t)
 	uint32_t sdid = target_mem32_read32(t, SIM_SDID);
 	uint32_t fcfg1 = target_mem32_read32(t, SIM_FCFG1);
 
+	DEBUG_INFO("Kinetis probe: %x\n", sdid);
+
 	switch (sdid >> 20U) {
 	case 0x161U:
 		/* sram memory size */
@@ -407,6 +409,14 @@ bool kinetis_probe(target_s *const t)
 		/* FlexNVM = 512 KiB */
 		kl_s32k14_setup(t, 0x1ffe0000, 0x1f000, 0x00180000, 0x80000);
 		break;
+	case 0x421U: /* MCXC444 */
+		t->driver = "MCXC444";
+		target_add_ram32(t, 0x1fffe000, 0x00002000);
+		target_add_ram32(t, 0x20000000, 0x00006000);
+		kinetis_add_flash(t, 0, 0x20000, 0x800, KL_WRITE_LEN);
+		kinetis_add_flash(t, 0x20000, 0x20000, 0x800, KL_WRITE_LEN);
+		break;
+
 	default:
 		return false;
 	}
