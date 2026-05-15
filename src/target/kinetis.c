@@ -409,12 +409,30 @@ bool kinetis_probe(target_s *const t)
 		/* FlexNVM = 512 KiB */
 		kl_s32k14_setup(t, 0x1ffe0000, 0x1f000, 0x00180000, 0x80000);
 		break;
-	case 0x421U: /* MCXC444 */
-		t->driver = "MCXC444";
-		target_add_ram32(t, 0x1fffe000, 0x00002000);
-		target_add_ram32(t, 0x20000000, 0x00006000);
-		kinetis_add_flash(t, 0, 0x20000, 0x800, KL_WRITE_LEN);
-		kinetis_add_flash(t, 0x20000, 0x20000, 0x800, KL_WRITE_LEN);
+	case 0x411U: /* MCXC24x TODO: verify */
+	case 0x421U: /* MCXC44x */
+		t->driver = "MCXCxxx";
+		switch ((sdid >> 16U) & 0xF) { /* SRAMSIZE */
+		case 0x5U:                     /* 16 KB */
+			target_add_ram32(t, 0x1ffff000, 0x00001000);
+			target_add_ram32(t, 0x20000000, 0x00003000);
+			break;
+		case 0x6U: /* 32 KB */
+			target_add_ram32(t, 0x1fffe000, 0x00002000);
+			target_add_ram32(t, 0x20000000, 0x00006000);
+			break;
+		}
+		switch ((fcfg1 >> 24) & 0xF) { /* PFSIZE */
+		case 0x7U:                     /* 128 KB */
+			kinetis_add_flash(t, 0, 0x10000, 0x800, KL_WRITE_LEN);
+			kinetis_add_flash(t, 0x10000, 0x10000, 0x800, KL_WRITE_LEN);
+			break;
+		case 0x9U: /* 256 KB */
+		case 0xFU: /* 256 KB fall-through */
+			kinetis_add_flash(t, 0, 0x20000, 0x800, KL_WRITE_LEN);
+			kinetis_add_flash(t, 0x20000, 0x20000, 0x800, KL_WRITE_LEN);
+			break;
+		}
 		break;
 
 	default:
