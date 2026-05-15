@@ -424,13 +424,13 @@ bool kinetis_probe(target_s *const t)
 		}
 		switch ((fcfg1 >> 24) & 0xF) { /* PFSIZE */
 		case 0x7U:                     /* 128 KB */
-			kinetis_add_flash(t, 0, 0x10000, 0x800, KL_WRITE_LEN);
-			kinetis_add_flash(t, 0x10000, 0x10000, 0x800, KL_WRITE_LEN);
+			kinetis_add_flash(t, 0, 0x10000, 0x400, KL_WRITE_LEN);
+			kinetis_add_flash(t, 0x10000, 0x10000, 0x400, KL_WRITE_LEN);
 			break;
 		case 0x9U: /* 256 KB */
 		case 0xFU: /* 256 KB fall-through */
-			kinetis_add_flash(t, 0, 0x20000, 0x800, KL_WRITE_LEN);
-			kinetis_add_flash(t, 0x20000, 0x20000, 0x800, KL_WRITE_LEN);
+			kinetis_add_flash(t, 0, 0x20000, 0x400, KL_WRITE_LEN);
+			kinetis_add_flash(t, 0x20000, 0x20000, 0x400, KL_WRITE_LEN);
 			break;
 		}
 		break;
